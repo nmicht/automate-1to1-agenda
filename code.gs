@@ -1,8 +1,18 @@
+/**
+ * This script generates agenda notes for 1:1 meetings.
+ * It takes the content from a 1:1 meeting template and add it to documents
+ * based on a dictionary.
+ * It search for recurrences in the calendar and if there is a meeting scheduled,
+ * the document is update with the notes from the template
+ */
+
 // Set up the required constants
 const CALENDAR_ID = 'replace for your calendar id'; 
 const TEMPLATE_DOC_ID = 'replace for your template doc id';
 
 // Array of objects with the event id and doc id for each one for reports.
+// eventId can be obtained using the identifier from the event url and pass it through a base64 decode 
+// like https://www.base64decode.org/ but taking only the first part, before _time
 const AGENDA_EVENTS = [
   {
     eventId: 'replace for eventId', 
@@ -11,12 +21,21 @@ const AGENDA_EVENTS = [
 ];
 
 
+// Main function
+function run() {
+  const eventsToProcess = getAgendaEventsInNextWeekEvents();
+
+  eventsToProcess.forEach(event => {
+    addMeetingNotesToDoc(event.calendarEvent, event.settings.targetDoc)
+  })
+}
+
 // Function to add meeting notes to the target document
 function addMeetingNotesToDoc(event, targetDocId) {
   const targetDoc = DocumentApp.openById(targetDocId);
   const targetBody = targetDoc.getBody();
 
-  // Index to insert elements in the doc
+  // Index to insert elements in the doc based on the last meeting - secont title
   let index = findLastMeetingTitle(DocumentApp.ParagraphHeading.HEADING2,targetDocId)
 
   // Insert Title
@@ -40,12 +59,12 @@ function addMeetingNotesToDoc(event, targetDocId) {
 
     const newItem = targetBody.insertListItem(index++, listItem.getText());
 
-    // Apply format attributes to the new paragraph in the destination document
+    // Apply attributes to the new paragraph in the destination document
+    //applyAttributes(newItem, attributes);
     newItem.setAttributes(itemAttributes)
   });
 
   Logger.log(`Agenda for meeting on ${formattedDate} for ${event.getTitle()} was added`)
-
 }
 
 function applyAttributes(element, attributes) {
@@ -70,7 +89,7 @@ function findLastMeetingTitle(searchCriteria, targetDocId) {
   const body = targetDoc.getBody();
   const elements = body.getNumChildren();
 
-  // start searching after the first element because we normally have an "stack" section
+  // start searching after the first element because we normally have an stack section
   for (let i = 1; i < elements; i++) {
     let item = body.getChild(i);
     if (item.getHeading() == searchCriteria) {
@@ -78,7 +97,6 @@ function findLastMeetingTitle(searchCriteria, targetDocId) {
     }
   }
 }
-
 
 // Find agenda events to process
 function getAgendaEventsInNextWeekEvents() {
@@ -94,6 +112,14 @@ function getAgendaEventsInNextWeekEvents() {
   for (let nextWeekEvent of nextWeekEvents) {
     for (let agendaEvent of AGENDA_EVENTS) {
       if (nextWeekEvent.getId().startsWith(agendaEvent.eventId)) {
+        // If the event was declined by the organizer, ignore it
+        const creator = nextWeekEvent.getGuestList(true)[0]
+        const isEventDeclined = (creator.getGuestStatus() !== 'NO')
+        if (isEventDeclined) {
+          Logger.log(`Skiping event ${nextWeekEvent.getTitle()} because creator declined`)
+          continue;
+        }
+        
         foundEvents.push({
           settings: agendaEvent,
           calendarEvent: nextWeekEvent
@@ -107,17 +133,3 @@ function getAgendaEventsInNextWeekEvents() {
 
   return foundEvents;
 }
-
-
-function generateAgendas() {
-  const eventsToProcess = getAgendaEventsInNextWeekEvents();
-
-  eventsToProcess.forEach(event => {
-    addMeetingNotesToDoc(event.calendarEvent, event.settings.targetDoc)
-  })
-}
-
-
-
-
-
