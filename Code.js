@@ -12,9 +12,9 @@ const DEBUG = false;
  */
 
 // Set up the required constants
-const CALENDAR_ID = PropertiesService.getScriptProperties().getProperty(calendarId);
-const TOPICS_SHEET_ID = PropertiesService.getScriptProperties().getProperty(spreadsheetId);
-const SETTINGS_DOC_ID = PropertiesService.getScriptProperties().getProperty(spreadsheetId);
+const CALENDAR_ID = PropertiesService.getScriptProperties().getProperty('calendarId');
+const TOPICS_SHEET_ID = PropertiesService.getScriptProperties().getProperty('spreadsheetId');
+const SETTINGS_DOC_ID = PropertiesService.getScriptProperties().getProperty('spreadsheetId');
 const SETTINGS_SHEET_NAME = 'settings';
 
 const AGENDA_SECTIONS = [
@@ -57,10 +57,10 @@ const black = "#000000";
  * The main function
  */
 function run() {
-  const week = getWeekDates(PropertiesService.getScriptProperties().getProperty(period));
+  const week = getWeekDates(PropertiesService.getScriptProperties().getProperty('period'));
   const oneToOneEvents = getOneToOneEvents(SETTINGS_DOC_ID, SETTINGS_SHEET_NAME);
   const eventsToProcess = getEvents(week.start, week.end, oneToOneEvents);
-  const topicsToProcess = getTopicsToProcess(TOPIC_SHEET_ID,PropertiesService.getScriptProperties().getProperty(year),week.number);
+  const topicsToProcess = getTopicsToProcess(TOPICS_SHEET_ID,PropertiesService.getScriptProperties().getProperty('year'),week.number);
 
   eventsToProcess.forEach(event => {
     addMeetingNotesToDoc(event.calendarEvent, event.settings.targetDoc, topicsToProcess);
@@ -492,9 +492,9 @@ function getOneToOneEvents(docId, sheetName) {
         const targetDoc = row[2];    // Column C (index 2)
 
         dataObjects.push({
-          section: section,
-          topic: topic,
-          week: week
+          person: person,
+          eventId: eventId,
+          targetDoc: targetDoc
         });
       }
     });
